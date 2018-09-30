@@ -23,43 +23,25 @@ func main() {
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
-	m.SetBackgroundColor(m.NewColor(10, 10, 10))
-
 	l1 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 50)
-	// l2 := m.NewPointLight(m.Vector{1, 2, 3}, m.NewColor(255, 255, 255), 200)
 	scene.AddLights(l1)
 
-	diffMat := &m.DiffuseMaterial{m.NewColor(250, 50, 50)}
-	scene.Add(m.NewSphere(m.Vector{3, 1, 5}, 0.5, diffMat))
+	m.SetBackgroundColor(m.NewColor(10, 10, 50))
 
-	// triangles
-	r := m.NewQuadrilateral(
-		m.Vector{0, 0, 6},
-		m.Vector{4, 0, 3},
-		m.Vector{0, 0, 0},
-		m.Vector{-4, 0, 3},
-		diffMat)
+	flare, verm, spire := 2.0, 0.0, 3.0
+	shell := generateShell(flare, verm, spire, 3)
 
-	diffMat = &m.DiffuseMaterial{m.NewColor(50, 150, 80)}
-	terrain := gridToTriangles(perlinHeightMap(toPointGrid(r, 0.1)), diffMat)
-	translation := m.Translate(m.Vector{0, 0, -1})
-	scene.Add(m.NewSharedObject(terrain, translation))
+	translation := m.Translate(m.Vector{0, 2, 50})
+	rotation := m.RotateX(math.Pi / 4.0)
+	shellObject := m.NewSharedObject(shell, translation.Mul(rotation))
+	scene.Add(shellObject)
 
 	scene.Precompute()
 
 	fmt.Println("Rendering...")
 
-	// aw := render.NewAVI("out.avi", width, height)
-	from, to := m.Vector{0, 1, 0}, m.Vector{0, 0, 10}
+	from, to := m.Vector{0, 2, 0}, m.Vector{0, 0, 10}
 	camera.LookAt(from, to, ey)
 	film := render.Render(scene, numWorkers)
 	film.SaveAsPNG("out.png")
-
-	// for i := 0; i < 30; i++ {
-	// 	camera.LookAt(from, to, ey)
-	// 	film := render.Render(scene, numWorkers)
-	// 	render.AddToAVI(aw, film)
-	// 	from = from.Add(m.Vector{0, 0, -0.05})
-	// }
-	// render.SaveAVI(aw)
 }

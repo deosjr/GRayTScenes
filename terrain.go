@@ -31,8 +31,7 @@ func perlinHeightMap(grid [][]model.Vector) [][]model.Vector {
 			// map from [-1,1] to [0,1]
 			noise = (noise + 1) / 2
 			noise = math.Pow(noise, 3.75)
-			//TODO: *2 -1 manually for camera position, remove once transformations are in
-			grid[y][x].Y = noise*2 - 1
+			grid[y][x].Y = noise
 		}
 	}
 	return grid
