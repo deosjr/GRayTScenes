@@ -6,6 +6,7 @@ import (
 	"time"
 
 	perlin "github.com/aquilax/go-perlin"
+	"github.com/fogleman/poissondisc"
 
 	"github.com/deosjr/GRayT/src/model"
 )
@@ -14,7 +15,7 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func perlinHeightMap(grid [][]model.Vector) [][]model.Vector {
+func perlinHeightMap(grid [][]model.Vector, n int, weights []float64, pow float64) [][]model.Vector {
 	xSize, ySize := len(grid), len(grid[0])
 	// alpha, beta, n iterations, random seed
 	p := perlin.NewPerlin(2, 2, 3, rand.Int63())
@@ -22,15 +23,18 @@ func perlinHeightMap(grid [][]model.Vector) [][]model.Vector {
 		for x, _ := range row {
 			nx := float64(x)/float64(xSize) - 0.5
 			ny := float64(y)/float64(ySize) - 0.5
-			noise := 0.5 * p.Noise2D(nx, ny)
-			noise += 0.7 * p.Noise2D(2*nx, 2*ny)
-			noise += 0.25 * p.Noise2D(4*nx, 4*ny)
-			noise += 0.15 * p.Noise2D(8*nx, 8*ny)
+			noise := weights[0] * p.Noise2D(nx, ny)
+			sum := weights[0]
+			for i := 0; i < n; i++ {
+				exp := math.Pow(2, float64(i+1))
+				noise += weights[i+1] * p.Noise2D(exp*nx, exp*ny)
+				sum += weights[i+1]
+			}
 			// normalize
-			noise = noise / (0.5 + 0.7 + 0.25 + 0.15)
+			noise = noise / sum
 			// map from [-1,1] to [0,1]
 			noise = (noise + 1) / 2
-			noise = math.Pow(noise, 3.75)
+			noise = math.Pow(noise, pow)
 			grid[y][x].Y = noise
 		}
 	}
@@ -79,4 +83,17 @@ func gridToTriangles(grid [][]model.Vector, mat model.Material) model.Object {
 		}
 	}
 	return model.NewComplexObject(triangles)
+}
+
+// assumption: q is perpendicular to z
+func poisson(q model.Quadrilateral, r float64) []model.Vector {
+	x0, y0 := q.P1.X, q.P1.Y
+	x1, y1 := q.P3.X, q.P3.Y
+	k := 30
+	points := poissondisc.Sample(x0, y0, x1, y1, r, k, nil)
+	vectors := make([]model.Vector, len(points))
+	for i, p := range points {
+		vectors[i] = model.Vector{p.X, p.Y, 0.0}
+	}
+	return vectors
 }
