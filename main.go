@@ -6,7 +6,6 @@ import (
 
 	m "github.com/deosjr/GRayT/src/model"
 	"github.com/deosjr/GRayT/src/render"
-	"github.com/deosjr/GenGeo/gen"
 )
 
 var (
@@ -27,38 +26,18 @@ func main() {
 	l1 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 50)
 	scene.AddLights(l1)
 
-	m.SetBackgroundColor(m.NewColor(100, 100, 100))
+	m.SetBackgroundColor(m.NewColor(50, 150, 0))
 
-	mat := &m.DiffuseMaterial{m.NewColor(200, 0, 0)}
-	// outline of front face, counterclockwise ordered
-	innerCircle := gen.NewCircle(func(t float64) float64 { return 1 }, 8)
-	outerCircle := gen.NewCircle(func(t float64) float64 { return 2 }, 8)
-	innerPoints := innerCircle.Points(m.Vector{1, 1, 0}, ex, ey, 0)
-	outerPoints := outerCircle.Points(m.Vector{1, 1, 0}, ex, ey, 0)
-	// triangles of front face
-	front := []m.Triangle{}
-	for _, o := range gen.JoinPoints([][]m.Vector{innerPoints, outerPoints}, mat) {
-		t := o.(m.Triangle)
-		front = append(front, t)
+	mat := &m.DiffuseMaterial{m.NewColor(100, 100, 100)}
+	w := equilateralArchWindow(mat)
+
+	for y := 0; y < 3; y += 2 {
+		for x := -5; x < 10; x++ {
+			translation := m.Translate(m.Vector{float64(x), float64(y), 3})
+			shared := m.NewSharedObject(w, translation)
+			scene.Add(shared)
+		}
 	}
-
-	innerReversed := make([]m.Vector, len(innerPoints))
-	for i := 0; i < len(innerPoints); i++ {
-		innerReversed[len(innerPoints)-1-i] = innerPoints[i]
-	}
-
-	ef := gen.ExtrusionFace{
-		Front:    front,
-		Outer:    [][]m.Vector{outerPoints},
-		Inner:    [][]m.Vector{innerReversed},
-		Material: mat,
-	}
-	extruded := gen.Extrude(ef, ez)
-
-	translation := m.Translate(m.Vector{0, 0, 3})
-	rotation := m.RotateY(math.Pi / 8)
-	sharedQ := m.NewSharedObject(extruded, translation.Mul(rotation))
-	scene.Add(sharedQ)
 
 	scene.Precompute()
 
