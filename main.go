@@ -41,7 +41,7 @@ func main() {
 
 	// extruded quadrilateral
 	mat = &m.DiffuseMaterial{m.NewColor(0, 0, 200)}
-	q := []m.Vector{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}}
+	q := []m.Vector{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0.5, 1.5, 0}, {0, 1, 0}}
 	extruded := gen.ExtrudeSolidFace(q, ez, mat)
 
 	translation = m.Translate(m.Vector{-1.5, 0, 3})
