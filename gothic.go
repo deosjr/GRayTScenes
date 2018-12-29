@@ -26,7 +26,7 @@ func simpleArchWindow(excess float64, mat m.Material) m.Object {
 	// then add the points on the circles of the actual arch
 	dist := pR.Sub(pL).Length()
 	r := excess * dist
-	numPoints := 16
+	numPoints := 100
 	circle := gen.NewCircle(func(t float64) float64 { return r }, numPoints)
 
 	mL := pL.Add(m.VectorFromTo(pL, pR).Times(excess))
@@ -89,7 +89,7 @@ func simpleArchWindow(excess float64, mat m.Material) m.Object {
 		Inner:    [][]m.Vector{arch},
 		Material: mat,
 	}
-	return gen.Extrude(ef, ez)
+	return gen.Extrude(ef, m.Vector{0, 0, 0.5})
 }
 
 func roundedArchWindow(mat m.Material) m.Object {

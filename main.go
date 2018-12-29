@@ -26,7 +26,7 @@ func main() {
 	l1 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 50)
 	scene.AddLights(l1)
 
-	m.SetBackgroundColor(m.NewColor(50, 150, 0))
+	m.SetBackgroundColor(m.NewColor(0, 0, 100))
 
 	mat := &m.DiffuseMaterial{m.NewColor(100, 100, 100)}
 	w := equilateralArchWindow(mat)
@@ -38,6 +38,10 @@ func main() {
 			scene.Add(shared)
 		}
 	}
+
+	mat = &m.DiffuseMaterial{m.NewColor(50, 150, 0)}
+	q := m.NewQuadrilateral(m.Vector{-5, 0, 0}, m.Vector{5, 0, 0}, m.Vector{5, 0, 3}, m.Vector{-5, 0, 3}, mat)
+	scene.Add(q.Tesselate())
 
 	scene.Precompute()
 
