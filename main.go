@@ -42,10 +42,15 @@ func main() {
 		front = append(front, t)
 	}
 
+	innerReversed := make([]m.Vector, len(innerPoints))
+	for i := 0; i < len(innerPoints); i++ {
+		innerReversed[len(innerPoints)-1-i] = innerPoints[i]
+	}
+
 	ef := gen.ExtrusionFace{
 		Front:    front,
 		Outer:    [][]m.Vector{outerPoints},
-		Inner:    [][]m.Vector{innerPoints},
+		Inner:    [][]m.Vector{innerReversed},
 		Material: mat,
 	}
 	extruded := gen.Extrude(ef, ez)
