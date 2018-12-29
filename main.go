@@ -30,22 +30,28 @@ func main() {
 	m.SetBackgroundColor(m.NewColor(100, 100, 100))
 
 	mat := &m.DiffuseMaterial{m.NewColor(200, 0, 0)}
+	// outline of front face, counterclockwise ordered
+	innerCircle := gen.NewCircle(func(t float64) float64 { return 1 }, 8)
+	outerCircle := gen.NewCircle(func(t float64) float64 { return 2 }, 8)
+	innerPoints := innerCircle.Points(m.Vector{1, 1, 0}, ex, ey, 0)
+	outerPoints := outerCircle.Points(m.Vector{1, 1, 0}, ex, ey, 0)
+	// triangles of front face
+	front := []m.Triangle{}
+	for _, o := range gen.JoinPoints([][]m.Vector{innerPoints, outerPoints}, mat) {
+		t := o.(m.Triangle)
+		front = append(front, t)
+	}
 
-	// base case: a cuboid
-	box := m.NewAABB(m.Vector{0, 0, 0}, m.Vector{1, 1, 1})
-	c := m.NewCuboid(box, mat).Tesselate()
-	rotation := m.RotateY(-math.Pi / 8)
-	translation := m.Translate(m.Vector{-0.5, 0, 2})
-	sharedC := m.NewSharedObject(c, translation.Mul(rotation))
-	scene.Add(sharedC)
+	ef := gen.ExtrusionFace{
+		Front:    front,
+		Outer:    [][]m.Vector{outerPoints},
+		Inner:    [][]m.Vector{innerPoints},
+		Material: mat,
+	}
+	extruded := gen.Extrude(ef, ez)
 
-	// extruded quadrilateral
-	mat = &m.DiffuseMaterial{m.NewColor(0, 0, 200)}
-	q := []m.Vector{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0.5, 1.5, 0}, {0, 1, 0}}
-	extruded := gen.ExtrudeSolidFace(q, ez, mat)
-
-	translation = m.Translate(m.Vector{-1.5, 0, 3})
-	rotation = m.RotateY(math.Pi)
+	translation := m.Translate(m.Vector{0, 0, 3})
+	rotation := m.RotateY(math.Pi / 8)
 	sharedQ := m.NewSharedObject(extruded, translation.Mul(rotation))
 	scene.Add(sharedQ)
 
