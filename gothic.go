@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	m "github.com/deosjr/GRayT/src/model"
 	"github.com/deosjr/GenGeo/gen"
 )
@@ -43,8 +45,8 @@ func archWindowWall(params archWindowWallParams) m.Object {
 	arch := []m.Vector{pR, bpR, bpL, pL}
 
 	// then add the points on the circles of the actual arch
-	dist := pR.Sub(pL).Length()
-	r := params.excess * dist
+	pLpR := pR.Sub(pL).Length()
+	r := params.excess * pLpR
 	circle := gen.NewCircle(func(t float64) float64 { return r }, params.numPoints)
 
 	mL := pL.Add(m.VectorFromTo(pL, pR).Times(params.excess))
@@ -52,30 +54,46 @@ func archWindowWall(params archWindowWallParams) m.Object {
 
 	// points returns a list of n points on the circle with radius r
 	// around a given midpoint, starting from the right and going counterclockwise
-	// with 8 points, [p0, p1, p2] describe the upper right arc
-	// and [p2, p3, p4] describes the upper left arc
-	// p0 = pR and p(N/2) = pL
-	// assumption: numPoints is even
-	// note: this only works for pointed archs because rest of the circle
-	// overlaps with the wall anyways, but generates pointless triangles
+	// the first quarter of points form the upper right quarter of the circle
+	// and the second quarter of points form the upper left quarter
+	// the left and right arc of the arch are subsets of these points,
+	// since the circles meet earlier if the excess is greater than 0.5
+
+	// the top of the arch is given by translating the middle of line pLpR up with y
+	// where y is sqrt(pLpR * (r-(pLpR/4))), where r is the circle radius
+
+	middle := pL.Add(m.VectorFromTo(pL, pR).Times(0.5))
+	y := math.Sqrt(pLpR * (r - (pLpR / 4.0)))
+	top := middle.Add(m.Vector{0, y, 0})
+
 	cL := circle.Points(mL, ex, ey, 0)
-	upperLeftArc := make([]m.Vector, 0, params.numPoints/4)
+	upperLeftArc := []m.Vector{}
 	for i := params.numPoints / 2; i >= params.numPoints/4; i-- {
-		upperLeftArc = append(upperLeftArc, cL[i])
-		if i == params.numPoints/2 {
+		p := cL[i]
+		if p.X > top.X {
+			break
+		}
+		upperLeftArc = append(upperLeftArc, p)
+		if p.X == pL.X || p.X == top.X {
 			continue
 		}
-		arch = append(arch, cL[i])
+		arch = append(arch, p)
 	}
+	arch = append(arch, top)
+	upperLeftArc = append(upperLeftArc, top)
 
 	cR := circle.Points(mR, ex, ey, 0)
-	upperRightArc := make([]m.Vector, 0, params.numPoints/4)
+	upperRightArc := []m.Vector{top}
 	for i := params.numPoints / 4; i >= 0; i-- {
-		upperRightArc = append(upperRightArc, cR[i])
-		if i == params.numPoints/4 || i == 0 {
+		p := cR[i]
+		if p.X <= top.X {
 			continue
 		}
-		arch = append(arch, cR[i])
+		upperRightArc = append(upperRightArc, p)
+		if p.X == pR.X {
+			continue
+		}
+		arch = append(arch, p)
 	}
 
 	// triangles of front face
