@@ -9,41 +9,46 @@ import (
 // by Sven Havemann, Dieter W. Fellner
 // (http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.97.8502&rep=rep1&type=pdf)
 
+type archWindowWallParams struct {
+	material m.Material
+	// four points from llhc to ulhc, counterclockwise
+	rectOutline m.Quadrilateral
+	// ratio r / distance(pL, pR), excess >= 0.5
+	excess float64
+	// padding between outline and window
+	xPadding      float64
+	bottomPadding float64
+	// depth of extrusion
+	depth float64
+	// height of upper segment endpoints pL and pR
+	pLpRY float64
+	// number of points on a full circle
+	numPoints int
+}
+
 // returns a rectangular wall with an arch window in it
-// params:
-// - rectangle: four points from llhc to ulhc, counterclockwise
-// - excess: ratio r / distance(pL, pR) >= 0.5
-func simpleArchWindow(rectangle m.Quadrilateral, excess float64, mat m.Material) m.Object {
+func archWindowWall(params archWindowWallParams) m.Object {
 	// outline of front face, counterclockwise ordered
-	llhc, lrhc, urhc, ulhc := rectangle.P1, rectangle.P2, rectangle.P3, rectangle.P4
+	llhc, lrhc, urhc, ulhc := params.rectOutline.P1, params.rectOutline.P2, params.rectOutline.P3, params.rectOutline.P4
 	rect := []m.Vector{llhc, lrhc, urhc, ulhc}
 
-	// TODO: parameterize
-	xPadding := 0.25
-	bottomPadding := 0.25
-	depth := 0.25
-	pLpRY := 4.0 / 3.0
-	numPoints := 100
-	//////////////////////
-
 	minX, maxX := llhc.X, lrhc.X
-	maxY := ulhc.Y
-	leftPadding := minX + xPadding
-	rightPadding := maxX - xPadding
+	leftPadding := minX + params.xPadding
+	rightPadding := maxX - params.xPadding
 
 	// inner line of the window, clockwise ordered
-	pL, pR := m.Vector{leftPadding, pLpRY, 0}, m.Vector{rightPadding, pLpRY, 0}
-	bpL, bpR := m.Vector{leftPadding, bottomPadding, 0}, m.Vector{rightPadding, bottomPadding, 0}
+	pL, pR := m.Vector{leftPadding, params.pLpRY, 0}, m.Vector{rightPadding, params.pLpRY, 0}
+	bpL, bpR := m.Vector{leftPadding, params.bottomPadding, 0}, m.Vector{rightPadding, params.bottomPadding, 0}
 	// start with the lower box
 	arch := []m.Vector{pR, bpR, bpL, pL}
 
 	// then add the points on the circles of the actual arch
 	dist := pR.Sub(pL).Length()
-	r := excess * dist
-	circle := gen.NewCircle(func(t float64) float64 { return r }, numPoints)
+	r := params.excess * dist
+	circle := gen.NewCircle(func(t float64) float64 { return r }, params.numPoints)
 
-	mL := pL.Add(m.VectorFromTo(pL, pR).Times(excess))
-	mR := pR.Add(m.VectorFromTo(pR, pL).Times(excess))
+	mL := pL.Add(m.VectorFromTo(pL, pR).Times(params.excess))
+	mR := pR.Add(m.VectorFromTo(pR, pL).Times(params.excess))
 
 	// points returns a list of n points on the circle with radius r
 	// around a given midpoint, starting from the right and going counterclockwise
@@ -51,21 +56,23 @@ func simpleArchWindow(rectangle m.Quadrilateral, excess float64, mat m.Material)
 	// and [p2, p3, p4] describes the upper left arc
 	// p0 = pR and p(N/2) = pL
 	// assumption: numPoints is even
+	// note: this only works for pointed archs because rest of the circle
+	// overlaps with the wall anyways, but generates pointless triangles
 	cL := circle.Points(mL, ex, ey, 0)
-	upperLeftArc := make([]m.Vector, 0, numPoints/4)
-	for i := numPoints / 2; i >= numPoints/4; i-- {
+	upperLeftArc := make([]m.Vector, 0, params.numPoints/4)
+	for i := params.numPoints / 2; i >= params.numPoints/4; i-- {
 		upperLeftArc = append(upperLeftArc, cL[i])
-		if i == numPoints/2 {
+		if i == params.numPoints/2 {
 			continue
 		}
 		arch = append(arch, cL[i])
 	}
 
 	cR := circle.Points(mR, ex, ey, 0)
-	upperRightArc := make([]m.Vector, 0, numPoints/4)
-	for i := numPoints / 4; i >= 0; i-- {
+	upperRightArc := make([]m.Vector, 0, params.numPoints/4)
+	for i := params.numPoints / 4; i >= 0; i-- {
 		upperRightArc = append(upperRightArc, cR[i])
-		if i == numPoints/4 || i == 0 {
+		if i == params.numPoints/4 || i == 0 {
 			continue
 		}
 		arch = append(arch, cR[i])
@@ -73,28 +80,29 @@ func simpleArchWindow(rectangle m.Quadrilateral, excess float64, mat m.Material)
 
 	// triangles of front face
 	front := []m.Triangle{}
-	t1, t2 := m.QuadrilateralToTriangles(llhc, lrhc, m.Vector{maxX, bottomPadding, 0}, m.Vector{minX, bottomPadding, 0}, mat)
+	t1, t2 := m.QuadrilateralToTriangles(llhc, lrhc, m.Vector{maxX, params.bottomPadding, 0}, m.Vector{minX, params.bottomPadding, 0}, params.material)
 	front = append(front, t1, t2)
-	t1, t2 = m.QuadrilateralToTriangles(m.Vector{minX, bottomPadding, 0}, bpL, pL, m.Vector{minX, pLpRY, 0}, mat)
+	t1, t2 = m.QuadrilateralToTriangles(m.Vector{minX, params.bottomPadding, 0}, bpL, pL, m.Vector{minX, params.pLpRY, 0}, params.material)
 	front = append(front, t1, t2)
-	t1, t2 = m.QuadrilateralToTriangles(bpR, m.Vector{maxX, bottomPadding, 0}, m.Vector{maxX, pLpRY, 0}, pR, mat)
+	t1, t2 = m.QuadrilateralToTriangles(bpR, m.Vector{maxX, params.bottomPadding, 0}, m.Vector{maxX, params.pLpRY, 0}, pR, params.material)
 	front = append(front, t1, t2)
 
+	// triangles to arch radiating from upper left/right hand corners
 	topMidpoint := ulhc.Add(m.VectorFromTo(ulhc, urhc).Times(0.5))
 
-	lPoints := append([]m.Vector{{minX, pLpRY, 0}}, upperLeftArc...)
+	lPoints := append([]m.Vector{{minX, params.pLpRY, 0}}, upperLeftArc...)
 	lPoints = append(lPoints, topMidpoint)
 	for i, p1 := range lPoints[:len(lPoints)-1] {
 		p2 := lPoints[i+1]
-		t := m.NewTriangle(m.Vector{minX, maxY, 0}, p1, p2, mat)
+		t := m.NewTriangle(ulhc, p1, p2, params.material)
 		front = append(front, t)
 	}
 
 	rPoints := append([]m.Vector{topMidpoint}, upperRightArc...)
-	rPoints = append(rPoints, m.Vector{maxX, pLpRY, 0})
+	rPoints = append(rPoints, m.Vector{maxX, params.pLpRY, 0})
 	for i, p1 := range rPoints[:len(rPoints)-1] {
 		p2 := rPoints[i+1]
-		t := m.NewTriangle(m.Vector{maxX, maxY, 0}, p1, p2, mat)
+		t := m.NewTriangle(urhc, p1, p2, params.material)
 		front = append(front, t)
 	}
 
@@ -102,15 +110,34 @@ func simpleArchWindow(rectangle m.Quadrilateral, excess float64, mat m.Material)
 		Front:    front,
 		Outer:    [][]m.Vector{rect},
 		Inner:    [][]m.Vector{arch},
-		Material: mat,
+		Material: params.material,
 	}
-	return gen.Extrude(ef, m.Vector{0, 0, depth})
+	return gen.Extrude(ef, m.Vector{0, 0, params.depth})
 }
 
-func roundedArchWindow(r m.Quadrilateral, mat m.Material) m.Object {
-	return simpleArchWindow(r, 0.5, mat)
+func roundedArchWindowWall(params archWindowWallParams) m.Object {
+	params.excess = 0.5
+	return archWindowWall(params)
 }
 
-func equilateralArchWindow(r m.Quadrilateral, mat m.Material) m.Object {
-	return simpleArchWindow(r, 1.0, mat)
+func equilateralArchWindowWall(params archWindowWallParams) m.Object {
+	params.excess = 1.0
+	return archWindowWall(params)
+}
+
+type archWindowTraceryParams struct {
+	material m.Material
+	// ratio r / distance(pL, pR), excess >= 0.5
+	excess float64
+	// depth of extrusion
+	depth float64
+	// height of upper segment endpoints pL and pR
+	pLpRY float64
+	// number of points on a full circle
+	numPoints int
+}
+
+// TODO: returns window tracery object
+func archWindowTracery(params archWindowTraceryParams) m.Object {
+	return m.Triangle{}
 }
