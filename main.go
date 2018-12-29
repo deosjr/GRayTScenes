@@ -29,7 +29,8 @@ func main() {
 	m.SetBackgroundColor(m.NewColor(0, 0, 100))
 
 	mat := &m.DiffuseMaterial{m.NewColor(100, 100, 100)}
-	w := equilateralArchWindow(mat)
+	q := m.NewQuadrilateral(m.Vector{0, 0, 0}, m.Vector{1, 0, 0}, m.Vector{1, 2, 0}, m.Vector{0, 2, 0}, mat)
+	w := equilateralArchWindow(q, mat)
 
 	for y := 0; y < 3; y += 2 {
 		for x := -5; x < 10; x++ {
@@ -40,7 +41,7 @@ func main() {
 	}
 
 	mat = &m.DiffuseMaterial{m.NewColor(50, 150, 0)}
-	q := m.NewQuadrilateral(m.Vector{-5, 0, 0}, m.Vector{5, 0, 0}, m.Vector{5, 0, 3}, m.Vector{-5, 0, 3}, mat)
+	q = m.NewQuadrilateral(m.Vector{-5, 0, 0}, m.Vector{5, 0, 0}, m.Vector{5, 0, 3}, m.Vector{-5, 0, 3}, mat)
 	scene.Add(q.Tesselate())
 
 	scene.Precompute()
