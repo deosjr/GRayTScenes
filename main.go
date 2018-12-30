@@ -29,7 +29,7 @@ func main() {
 	m.SetBackgroundColor(m.NewColor(0, 0, 100))
 
 	mat := &m.DiffuseMaterial{m.NewColor(100, 100, 100)}
-	params := archWindowWallParams{
+	awwparams := archWindowWallParams{
 		rectOutline:   m.NewQuadrilateral(m.Vector{0, 0, 0}, m.Vector{1, 0, 0}, m.Vector{1, 2, 0}, m.Vector{0, 2, 0}, mat),
 		excess:        1.25,
 		xPadding:      0.25,
@@ -39,12 +39,34 @@ func main() {
 		numPoints:     100,
 		material:      mat,
 	}
-	w := archWindowWall(params)
+	w := archWindowWall(awwparams)
 
 	for y := 0; y < 3; y += 2 {
 		for x := -5; x < 10; x++ {
 			translation := m.Translate(m.Vector{float64(x), float64(y), 3})
 			shared := m.NewSharedObject(w, translation)
+			scene.Add(shared)
+		}
+	}
+
+	mat = &m.DiffuseMaterial{m.NewColor(255, 0, 0)}
+	awtparams := archWindowTraceryParams{
+		material:  mat,
+		excess:    1.25,
+		offset:    0.05,
+		depth:     0.05,
+		pL:        m.Vector{0.25, 4.0 / 3.0, 0},
+		pR:        m.Vector{0.75, 4.0 / 3.0, 0},
+		bpL:       m.Vector{0.25, 0.25, 0},
+		bpR:       m.Vector{0.75, 0.25, 0},
+		numPoints: 100,
+	}
+	t := archWindowTracery(awtparams)
+
+	for y := 0; y < 3; y += 2 {
+		for x := -5; x < 10; x++ {
+			translation := m.Translate(m.Vector{float64(x), float64(y), 3.10})
+			shared := m.NewSharedObject(t, translation)
 			scene.Add(shared)
 		}
 	}
