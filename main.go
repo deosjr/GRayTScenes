@@ -51,15 +51,16 @@ func main() {
 
 	mat = &m.DiffuseMaterial{m.NewColor(255, 0, 0)}
 	awtparams := archWindowTraceryParams{
-		material:  mat,
-		excess:    1.25,
-		offset:    0.05,
-		depth:     0.05,
-		pL:        m.Vector{0.25, 4.0 / 3.0, 0},
-		pR:        m.Vector{0.75, 4.0 / 3.0, 0},
-		bpL:       m.Vector{0.25, 0.25, 0},
-		bpR:       m.Vector{0.75, 0.25, 0},
-		numPoints: 100,
+		material:       mat,
+		excess:         1.25,
+		outerOffset:    0.05,
+		verticalOffset: 0.25,
+		depth:          0.05,
+		pL:             m.Vector{0.25, 4.0 / 3.0, 0},
+		pR:             m.Vector{0.75, 4.0 / 3.0, 0},
+		bpL:            m.Vector{0.25, 0.25, 0},
+		bpR:            m.Vector{0.75, 0.25, 0},
+		numPoints:      100,
 	}
 	t := archWindowTracery(awtparams)
 

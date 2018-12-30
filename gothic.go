@@ -178,11 +178,11 @@ func equilateralArchWindowWall(params archWindowWallParams) m.Object {
 	return archWindowWall(params)
 }
 
-type archWindowTraceryParams struct {
+type emptyArchWindowTraceryParams struct {
 	material m.Material
 	// ratio r / distance(pL, pR), excess >= 0.5
 	excess float64
-	// width of tracery
+	// width of tracery, extends inwards
 	offset float64
 	// depth of extrusion
 	depth float64
@@ -196,8 +196,8 @@ type archWindowTraceryParams struct {
 	numPoints int
 }
 
-// archWindowTracery returns window tracery object
-func archWindowTracery(params archWindowTraceryParams) m.Object {
+// emptyArchWindowTracery returns window tracery object which is a simple outline
+func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 	mL := params.pL.Add(m.VectorFromTo(params.pL, params.pR).Times(params.excess))
 	mR := params.pR.Add(m.VectorFromTo(params.pR, params.pL).Times(params.excess))
 
@@ -231,4 +231,57 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 		Material: params.material,
 	}
 	return gen.Extrude(ef, m.Vector{0, 0, params.depth})
+}
+
+type archWindowTraceryParams struct {
+	material m.Material
+	// ratio r / distance(pL, pR), excess >= 0.5
+	excess float64
+	// width of tracery, extends inwards
+	// outer is the width of outermost arch
+	// TODO: inner is the width of the inner tracery
+	// vertical is the offset between main and subarch points
+	outerOffset    float64
+	innerOffset    float64
+	verticalOffset float64
+	// depth of extrusion
+	depth float64
+	// pL and pR, left and right endpoints of the arch
+	pL m.Vector
+	pR m.Vector
+	// bpL and bpR, left and right bottom points of the window
+	bpL m.Vector
+	bpR m.Vector
+	// number of points on a quarter circle arc
+	numPoints int
+}
+
+// archWindowTracery returns window tracery object
+func archWindowTracery(params archWindowTraceryParams) m.Object {
+	eparams := emptyArchWindowTraceryParams{
+		material:  params.material,
+		excess:    params.excess,
+		offset:    params.outerOffset,
+		depth:     params.depth,
+		pL:        params.pL,
+		pR:        params.pR,
+		bpL:       params.bpL,
+		bpR:       params.bpR,
+		numPoints: params.numPoints,
+	}
+	mainArch := emptyArchWindowTracery(eparams)
+
+	verticalOffset := m.Vector{0, -params.verticalOffset, 0}
+	pM := params.pL.Add(m.VectorFromTo(params.pL, params.pR).Times(0.5)).Add(verticalOffset)
+	bpM := params.bpL.Add(m.VectorFromTo(params.bpL, params.bpR).Times(0.5))
+	eparams.pL = params.pL.Add(verticalOffset)
+	eparams.pR = pM
+	eparams.bpR = bpM
+	leftArch := emptyArchWindowTracery(eparams)
+	eparams.pL = pM
+	eparams.pR = params.pR.Add(verticalOffset)
+	eparams.bpL = bpM
+	eparams.bpR = params.bpR
+	rightArch := emptyArchWindowTracery(eparams)
+	return m.NewComplexObject([]m.Object{mainArch, leftArch, rightArch})
 }
