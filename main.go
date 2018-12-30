@@ -53,7 +53,8 @@ func main() {
 	awtparams := archWindowTraceryParams{
 		material:       mat,
 		excess:         1.25,
-		outerOffset:    0.05,
+		outerWidth:     0.05,
+		innerWidth:     0.03,
 		verticalOffset: 0.25,
 		depth:          0.05,
 		pL:             m.Vector{0.25, 4.0 / 3.0, 0},

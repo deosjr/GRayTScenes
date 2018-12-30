@@ -237,12 +237,11 @@ type archWindowTraceryParams struct {
 	material m.Material
 	// ratio r / distance(pL, pR), excess >= 0.5
 	excess float64
-	// width of tracery, extends inwards
-	// outer is the width of outermost arch
-	// TODO: inner is the width of the inner tracery
-	// vertical is the offset between main and subarch points
-	outerOffset    float64
-	innerOffset    float64
+	// outerWidth is the width of outermost arch
+	// TODO: innerWidth is the width of the inner tracery
+	outerWidth float64
+	innerWidth float64
+	// offset between main and subarch points
 	verticalOffset float64
 	// depth of extrusion
 	depth float64
@@ -261,7 +260,7 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	eparams := emptyArchWindowTraceryParams{
 		material:  params.material,
 		excess:    params.excess,
-		offset:    params.outerOffset,
+		offset:    params.outerWidth,
 		depth:     params.depth,
 		pL:        params.pL,
 		pR:        params.pR,
@@ -271,17 +270,23 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	}
 	mainArch := emptyArchWindowTracery(eparams)
 
+	eparams.offset = params.innerWidth
+	innerOffset := m.Vector{params.outerWidth - params.innerWidth, 0, 0}
+	innerWidth := m.Vector{params.innerWidth, 0, 0}
 	verticalOffset := m.Vector{0, -params.verticalOffset, 0}
 	pM := params.pL.Add(m.VectorFromTo(params.pL, params.pR).Times(0.5)).Add(verticalOffset)
 	bpM := params.bpL.Add(m.VectorFromTo(params.bpL, params.bpR).Times(0.5))
-	eparams.pL = params.pL.Add(verticalOffset)
-	eparams.pR = pM
-	eparams.bpR = bpM
+
+	eparams.pL = params.pL.Add(verticalOffset).Add(innerOffset)
+	eparams.bpL = params.bpL.Add(innerOffset)
+	eparams.pR = pM.Add(innerWidth.Times(0.5))
+	eparams.bpR = bpM.Add(innerWidth.Times(0.5))
 	leftArch := emptyArchWindowTracery(eparams)
-	eparams.pL = pM
-	eparams.pR = params.pR.Add(verticalOffset)
-	eparams.bpL = bpM
-	eparams.bpR = params.bpR
+
+	eparams.pL = pM.Sub(innerWidth.Times(0.5))
+	eparams.bpL = bpM.Sub(innerWidth.Times(0.5))
+	eparams.pR = params.pR.Add(verticalOffset).Sub(innerOffset)
+	eparams.bpR = params.bpR.Sub(innerOffset)
 	rightArch := emptyArchWindowTracery(eparams)
 	return m.NewComplexObject([]m.Object{mainArch, leftArch, rightArch})
 }
