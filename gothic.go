@@ -277,16 +277,51 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	pM := params.pL.Add(m.VectorFromTo(params.pL, params.pR).Times(0.5)).Add(verticalOffset)
 	bpM := params.bpL.Add(m.VectorFromTo(params.bpL, params.bpR).Times(0.5))
 
+	// left sub arch
 	eparams.pL = params.pL.Add(verticalOffset).Add(innerOffset)
 	eparams.bpL = params.bpL.Add(innerOffset)
 	eparams.pR = pM.Add(innerWidth.Times(0.5))
 	eparams.bpR = bpM.Add(innerWidth.Times(0.5))
 	leftArch := emptyArchWindowTracery(eparams)
 
+	// rosette
+	mR := params.pR.Add(m.VectorFromTo(params.pR, params.pL).Times(params.excess))
+	rR := m.VectorFromTo(mR, params.pR).Length() - params.outerWidth
+	mLR := eparams.pR.Add(m.VectorFromTo(eparams.pR, eparams.pL).Times(params.excess))
+	rLR := m.VectorFromTo(mLR, eparams.pR).Length()
+
+	// intersection of axis of symmetry and ellipse (mR,mLR,rR+rLR)
+	center := mR.Add(m.VectorFromTo(mR, mLR).Times(0.5))
+	a := (rR + rLR) / 2.0
+	c := m.VectorFromTo(mR, mLR).Length() * 0.5
+	b := math.Sqrt(a*a - c*c)
+	y := (a/b)*math.Sqrt(b*b-math.Pow(pM.X-center.X, 2)) + center.Y
+	mC := m.Vector{pM.X, y, 0}
+
+	r := rR - m.VectorFromTo(mC, mR).Length()
+	innerCircle := gen.NewCircle(func(t float64) float64 { return r }, params.numPoints)
+	ip := innerCircle.Points(mC, ex, ey, 0)
+	outerCircle := gen.NewCircle(func(t float64) float64 { return r + params.innerWidth }, params.numPoints)
+	op := outerCircle.Points(mC, ex, ey, 0)
+	triangles := gen.JoinPoints([][]m.Vector{ip, op}, params.material)
+	rface := make([]m.Triangle, len(triangles))
+	for i, o := range triangles {
+		rface[len(triangles)-1-i] = o.(m.Triangle)
+	}
+	ef := gen.ExtrusionFace{
+		Front:    rface,
+		Outer:    [][]m.Vector{op},
+		Inner:    [][]m.Vector{ip},
+		Material: params.material,
+	}
+	rosette := gen.Extrude(ef, m.Vector{0, 0, params.depth})
+
+	// right sub arch
 	eparams.pL = pM.Sub(innerWidth.Times(0.5))
 	eparams.bpL = bpM.Sub(innerWidth.Times(0.5))
 	eparams.pR = params.pR.Add(verticalOffset).Sub(innerOffset)
 	eparams.bpR = params.bpR.Sub(innerOffset)
 	rightArch := emptyArchWindowTracery(eparams)
-	return m.NewComplexObject([]m.Object{mainArch, leftArch, rightArch})
+
+	return m.NewComplexObject([]m.Object{mainArch, leftArch, rightArch, rosette})
 }
