@@ -12,8 +12,8 @@ import (
 // (http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.97.8502&rep=rep1&type=pdf)
 
 // an arch consists of two lists of points:
-// - all points in the left arch (including the top point)
-// - all points in the right arch (including top point)
+// - all points in the left arc
+// - all points in the right arc
 type arch struct {
 	left  []m.Vector
 	right []m.Vector
@@ -26,68 +26,26 @@ func createArch(pL, pR, mL, mR m.Vector, numPoints int) arch {
 	// generate left and right arc up until their intersection point (top)
 	// the top of the arch is given by translating the middle of line pLpR up with y
 	// where y is sqrt(pLpR * (r-(pLpR/4))), where r is the circle radius
+	// arc angle alpha: tan alpha = ||top,pM|| / || pM,mL||
 
 	// assumption: length of mR-pR given as equal
 	r := m.VectorFromTo(mL, pL).Length()
 
 	pLpR := m.VectorFromTo(pL, pR).Length()
-	middle := pL.Add(m.VectorFromTo(pL, pR).Times(0.5))
+	pM := pL.Add(m.VectorFromTo(pL, pR).Times(0.5))
 	y := math.Sqrt(pLpR * (r - (pLpR / 4.0)))
-	top := middle.Add(m.Vector{0, y, 0})
+	top := pM.Add(m.Vector{0, y, 0})
+	alpha := math.Atan2(m.VectorFromTo(top, pM).Length(), m.VectorFromTo(pM, mL).Length())
 
-	upperLeftArc := leftQuarterCirclePoints(mL, r, numPoints, top)
-	upperLeftArc = append(upperLeftArc, top)
-
-	upperRightArc := []m.Vector{top}
-	upperRightArc = append(upperRightArc, rightQuarterCirclePoints(mR, r, numPoints, top)...)
+	c := gen.NewCircle(mL, r)
+	upperLeftArc := c.PointsPhaseRange(math.Pi, math.Pi-alpha, numPoints, m.Vector{1, 0, 0}, m.Vector{0, 1, 0})
+	c = gen.NewCircle(mR, r)
+	upperRightArc := c.PointsPhaseRange(alpha, 0, numPoints, m.Vector{1, 0, 0}, m.Vector{0, 1, 0})
 
 	return arch{
 		left:  upperLeftArc,
 		right: upperRightArc,
 	}
-}
-
-// start at pi and rotate clockwise until p.x > top.x
-// because we might intersect with right arc before quarter circle is done
-func leftQuarterCirclePoints(p m.Vector, r float64, numPoints int, top m.Vector) []m.Vector {
-	ex := m.Vector{1, 0, 0}
-	ey := m.Vector{0, 1, 0}
-	angle := (1 / (float64(numPoints))) * (math.Pi / 2.0)
-	l := []m.Vector{}
-	for i := 0; i < numPoints; i++ {
-		xVector := ex.Times(r * math.Cos((float64(numPoints-i)*angle)+(math.Pi/2.0)))
-		yVector := ey.Times(r * math.Sin((float64(numPoints-i)*angle)+(math.Pi/2.0)))
-		newP := p.Add(xVector).Add(yVector)
-		if newP.X > top.X {
-			break
-		}
-		l = append(l, newP)
-	}
-	return l
-}
-
-// start at 0 and rotate counterclockwise until p.x < top.x
-// because we might intersect with left arc before quarter circle is done
-// note: we want clockwise order so we reverse at the end
-func rightQuarterCirclePoints(p m.Vector, r float64, numPoints int, top m.Vector) []m.Vector {
-	ex := m.Vector{1, 0, 0}
-	ey := m.Vector{0, 1, 0}
-	angle := (1 / (float64(numPoints))) * (math.Pi / 2.0)
-	l := []m.Vector{}
-	for i := 0; i < numPoints; i++ {
-		xVector := ex.Times(r * math.Cos(float64(i)*angle))
-		yVector := ey.Times(r * math.Sin(float64(i)*angle))
-		newP := p.Add(xVector).Add(yVector)
-		if newP.X < top.X {
-			break
-		}
-		l = append(l, newP)
-	}
-	out := make([]m.Vector, len(l))
-	for i, v := range l {
-		out[len(l)-1-i] = v
-	}
-	return out
 }
 
 type archWindowWallParams struct {
@@ -207,10 +165,7 @@ func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 
 	ipL := m.Vector{params.pL.X + params.offset, params.pL.Y, params.pL.Z}
 	ipR := m.Vector{params.pR.X - params.offset, params.pR.Y, params.pR.Z}
-	// TODO: this hack holds up reasonably well but is of course incorrect
-	// we still dont know how to enforce equal points on outer/inner arch
-	innerPoints := int(float64(params.numPoints) * 1.2)
-	innerArch := createArch(ipL, ipR, mL, mR, innerPoints)
+	innerArch := createArch(ipL, ipR, mL, mR, params.numPoints)
 
 	ibpL := m.Vector{params.bpL.X + params.offset, params.bpL.Y + params.offset, params.bpL.Z}
 	ibpR := m.Vector{params.bpR.X - params.offset, params.bpR.Y + params.offset, params.bpR.Z}
@@ -238,7 +193,7 @@ type archWindowTraceryParams struct {
 	// ratio r / distance(pL, pR), excess >= 0.5
 	excess float64
 	// outerWidth is the width of outermost arch
-	// TODO: innerWidth is the width of the inner tracery
+	// innerWidth is the width of the inner tracery
 	outerWidth float64
 	innerWidth float64
 	// offset between main and subarch points
@@ -299,10 +254,15 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	mC := m.Vector{pM.X, y, 0}
 
 	r := rR - m.VectorFromTo(mC, mR).Length()
-	innerCircle := gen.NewCircle(func(t float64) float64 { return r }, params.numPoints)
-	ip := innerCircle.Points(mC, ex, ey, 0)
-	outerCircle := gen.NewCircle(func(t float64) float64 { return r + params.innerWidth }, params.numPoints)
-	op := outerCircle.Points(mC, ex, ey, 0)
+	innerCircle := gen.NewCircle(mC, r)
+	ip := innerCircle.PointsPhaseRange(0, 2*math.Pi, params.numPoints, ex, ey)
+	outerCircle := gen.NewCircle(mC, r+params.innerWidth)
+	op := outerCircle.PointsPhaseRange(0, 2*math.Pi, params.numPoints, ex, ey)
+	ipRev := make([]m.Vector, len(ip))
+	for i, v := range ip {
+		ipRev[len(op)-1-i] = v
+	}
+
 	triangles := gen.JoinPoints([][]m.Vector{ip, op}, params.material)
 	rface := make([]m.Triangle, len(triangles))
 	for i, o := range triangles {
@@ -311,7 +271,7 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	ef := gen.ExtrusionFace{
 		Front:    rface,
 		Outer:    [][]m.Vector{op},
-		Inner:    [][]m.Vector{ip},
+		Inner:    [][]m.Vector{ipRev},
 		Material: params.material,
 	}
 	rosette := gen.Extrude(ef, m.Vector{0, 0, params.depth})
