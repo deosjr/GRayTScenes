@@ -23,10 +23,11 @@ func main() {
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
-	l1 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 50)
-	scene.AddLights(l1)
+	l1 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 20)
+	l2 := m.NewPointLight(m.Vector{-2, 4.5, 7}, m.NewColor(255, 255, 255), 500)
+	scene.AddLights(l1, l2)
 
-	m.SetBackgroundColor(m.NewColor(0, 0, 100))
+	m.SetBackgroundColor(m.NewColor(150, 100, 20))
 
 	mat := &m.DiffuseMaterial{m.NewColor(100, 100, 100)}
 	awwparams := archWindowWallParams{
@@ -49,7 +50,7 @@ func main() {
 		}
 	}
 
-	mat = &m.DiffuseMaterial{m.NewColor(255, 0, 0)}
+	mat = &m.DiffuseMaterial{m.NewColor(50, 50, 50)}
 	awtparams := archWindowTraceryParams{
 		material:       mat,
 		excess:         1.25,
