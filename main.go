@@ -62,6 +62,7 @@ func main() {
 		bpL:            m.Vector{0.25, 0.25, 0},
 		bpR:            m.Vector{0.75, 0.25, 0},
 		numPoints:      100,
+		numFoils:       3,
 	}
 	t := archWindowTracery(awtparams)
 

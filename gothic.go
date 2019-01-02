@@ -162,6 +162,10 @@ func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 	outerArch := createArch(params.pL, params.pR, mL, mR, params.numPoints)
 	outerFrame := append([]m.Vector{params.pR, params.bpR, params.bpL, params.pL}, outerArch.left...)
 	outerFrame = append(outerFrame, outerArch.right...)
+	outerRev := make([]m.Vector, len(outerFrame))
+	for i, v := range outerFrame {
+		outerRev[len(outerFrame)-1-i] = v
+	}
 
 	ipL := m.Vector{params.pL.X + params.offset, params.pL.Y, params.pL.Z}
 	ipR := m.Vector{params.pR.X - params.offset, params.pR.Y, params.pR.Z}
@@ -181,7 +185,7 @@ func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 
 	ef := gen.ExtrusionFace{
 		Front:    front,
-		Outer:    [][]m.Vector{outerFrame},
+		Outer:    [][]m.Vector{outerRev},
 		Inner:    [][]m.Vector{innerFrame},
 		Material: params.material,
 	}
@@ -208,6 +212,8 @@ type archWindowTraceryParams struct {
 	bpR m.Vector
 	// number of points on a quarter circle arc
 	numPoints int
+	// number of foils on the rosette
+	numFoils int
 }
 
 // archWindowTracery returns window tracery object
@@ -252,11 +258,43 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	b := math.Sqrt(a*a - c*c)
 	y := (a/b)*math.Sqrt(b*b-math.Pow(pM.X-center.X, 2)) + center.Y
 	mC := m.Vector{pM.X, y, 0}
-
 	r := rR - m.VectorFromTo(mC, mR).Length()
-	innerCircle := gen.NewCircle(mC, r)
+	rparams := rosetteParams{
+		material:  params.material,
+		center:    mC,
+		radius:    r,
+		width:     params.innerWidth,
+		depth:     params.depth,
+		numPoints: params.numPoints,
+		numFoils:  params.numFoils,
+	}
+	rosette := rosette(rparams)
+
+	// right sub arch
+	eparams.pL = pM.Sub(innerWidth.Times(0.5))
+	eparams.bpL = bpM.Sub(innerWidth.Times(0.5))
+	eparams.pR = params.pR.Add(verticalOffset).Sub(innerOffset)
+	eparams.bpR = params.bpR.Sub(innerOffset)
+	rightArch := emptyArchWindowTracery(eparams)
+
+	return m.NewComplexObject([]m.Object{mainArch, leftArch, rightArch, rosette})
+}
+
+type rosetteParams struct {
+	material  m.Material
+	center    m.Vector
+	radius    float64
+	width     float64
+	depth     float64
+	numPoints int
+	numFoils  int
+	// TODO lying vs standing
+}
+
+func rosette(params rosetteParams) m.Object {
+	innerCircle := gen.NewCircle(params.center, params.radius)
 	ip := innerCircle.PointsPhaseRange(0, 2*math.Pi, params.numPoints, ex, ey)
-	outerCircle := gen.NewCircle(mC, r+params.innerWidth)
+	outerCircle := gen.NewCircle(params.center, params.radius+params.width)
 	op := outerCircle.PointsPhaseRange(0, 2*math.Pi, params.numPoints, ex, ey)
 	ipRev := make([]m.Vector, len(ip))
 	for i, v := range ip {
@@ -274,14 +312,41 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 		Inner:    [][]m.Vector{ipRev},
 		Material: params.material,
 	}
-	rosette := gen.Extrude(ef, m.Vector{0, 0, params.depth})
+	circle := gen.Extrude(ef, m.Vector{0, 0, params.depth})
 
-	// right sub arch
-	eparams.pL = pM.Sub(innerWidth.Times(0.5))
-	eparams.bpL = bpM.Sub(innerWidth.Times(0.5))
-	eparams.pR = params.pR.Add(verticalOffset).Sub(innerOffset)
-	eparams.bpR = params.bpR.Sub(innerOffset)
-	rightArch := emptyArchWindowTracery(eparams)
+	alpha := (2 * math.Pi) / float64(params.numFoils)
+	rR := params.radius + params.width
+	rF := (math.Sin(alpha/2.0) * rR) / (math.Sin(alpha/2.0) + 1)
+	foilCircle := gen.NewCircle(params.center, rR-rF)
 
-	return m.NewComplexObject([]m.Object{mainArch, leftArch, rightArch, rosette})
+	foils := make([]m.Object, params.numFoils)
+	for n := 0; n < params.numFoils; n++ {
+		// pi/2 determines lying/standing rosette for now
+		beta := (math.Pi / 2) + float64(n)*alpha
+		foilCenter := foilCircle.Point(beta, ex, ey)
+		outerCircle = gen.NewCircle(foilCenter, rF)
+		from := beta - (math.Pi+alpha)/2.0
+		to := beta + (math.Pi+alpha)/2.0
+		op = outerCircle.PointsPhaseRange(from, to, params.numPoints, ex, ey)
+		innerCircle = gen.NewCircle(foilCenter, rF-params.width)
+		ip = innerCircle.PointsPhaseRange(from, to, params.numPoints, ex, ey)
+		// we join innercircle points to outercircle points list
+		// as they form one outline of the foil form
+		for i := len(ip) - 1; i >= 0; i-- {
+			op = append(op, ip[i])
+		}
+
+		triangles = gen.JoinPointsNonCircular([][]m.Vector{ip, op}, params.material)
+		rface = make([]m.Triangle, len(triangles))
+		for i, o := range triangles {
+			rface[len(triangles)-1-i] = o.(m.Triangle)
+		}
+		ef = gen.ExtrusionFace{
+			Front:    rface,
+			Outer:    [][]m.Vector{op},
+			Material: params.material,
+		}
+		foils[n] = gen.Extrude(ef, m.Vector{0, 0, params.depth})
+	}
+	return m.NewComplexObject(append(foils, circle))
 }
