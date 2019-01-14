@@ -9,7 +9,61 @@ import (
 	"strings"
 
 	m "github.com/deosjr/GRayT/src/model"
+	"github.com/deosjr/GenGeo/gen"
 )
+
+// SaveObj builds a string in .obj format
+// representing the list of triangles
+// NOTE: .obj vertex count is 1-based
+func SaveObj(o m.Object) string {
+	triangles := trianglesFromObject(o)
+	vertices := []m.Vector{}
+	vertexMap := map[m.Vector]int64{}
+	faces := make([]m.Face, len(triangles))
+	for i, t := range triangles {
+		v0, ok := vertexMap[t.P0]
+		if !ok {
+			v0 = int64(len(vertexMap)) + 1
+			vertexMap[t.P0] = v0
+			vertices = append(vertices, t.P0)
+		}
+		v1, ok := vertexMap[t.P0]
+		if !ok {
+			v1 = int64(len(vertexMap)) + 1
+			vertexMap[t.P0] = v1
+			vertices = append(vertices, t.P0)
+		}
+		v2, ok := vertexMap[t.P0]
+		if !ok {
+			v2 = int64(len(vertexMap)) + 1
+			vertexMap[t.P0] = v2
+			vertices = append(vertices, t.P0)
+		}
+		faces[i] = m.Face{v0, v1, v2}
+	}
+
+	s := ""
+	for _, v := range vertices {
+		s += fmt.Sprintf("v %f %f %f\n", v.X, v.Y, v.Z)
+	}
+	for _, f := range faces {
+		s += fmt.Sprintf("f %d %d %d\n", f.V0, f.V1, f.V2)
+	}
+	return s
+}
+
+func trianglesFromObject(objects ...m.Object) []m.Triangle {
+	triangles := []m.Triangle{}
+	for _, o := range objects {
+		switch t := o.(type) {
+		case m.Triangle:
+			triangles = append(triangles, t)
+		case *m.ComplexObject:
+			triangles = append(triangles, trianglesFromObject(t.Objects()...)...)
+		}
+	}
+	return triangles
+}
 
 // LoadObj assumes filename contains one triangle mesh object
 func LoadObj(filename string, mat m.Material) (m.Object, error) {
@@ -25,7 +79,7 @@ func LoadObj(filename string, mat m.Material) (m.Object, error) {
 
 func loadObj(scanner *bufio.Scanner, mat m.Material) (m.Object, error) {
 	var vertices []m.Vector
-	var triangles []m.Object
+	var faces []m.Face
 	for scanner.Scan() {
 		line := scanner.Text()
 		fields := strings.Fields(line)
@@ -43,16 +97,16 @@ func loadObj(scanner *bufio.Scanner, mat m.Material) (m.Object, error) {
 			}
 			vertices = append(vertices, vertex)
 		case "f":
-			face, err := readTriangle(values, vertices, mat)
+			face, err := readFace(values, int64(len(vertices)))
 			if err != nil {
 				return nil, err
 			}
-			triangles = append(triangles, face)
+			faces = append(faces, face)
 		default:
 			fmt.Printf("Unexpected line: %s", line)
 		}
 	}
-	return toObject(triangles)
+	return toObject(vertices, faces, mat)
 }
 
 func readVertex(coordinates []string) (m.Vector, error) {
@@ -74,55 +128,40 @@ func readVertex(coordinates []string) (m.Vector, error) {
 	return m.Vector{p1, p2, p3}, nil
 }
 
-func readTriangle(indices []string, vertices []m.Vector, mat m.Material) (m.Triangle, error) {
+func readFace(indices []string, numVertices int64) (m.Face, error) {
 	if len(indices) != 3 {
-		return m.Triangle{}, fmt.Errorf("Invalid indices: %v", indices)
+		return m.Face{}, fmt.Errorf("Invalid indices: %v", indices)
 	}
 	i1, err := strconv.ParseInt(indices[0], 10, 64)
 	if err != nil {
-		return m.Triangle{}, err
+		return m.Face{}, err
 	}
 
-	numVertices := int64(len(vertices))
 	if i1 < 1 || numVertices < i1 {
-		return m.Triangle{}, fmt.Errorf("Invalid index: %d #indices: %d", i1, numVertices)
+		return m.Face{}, fmt.Errorf("Invalid index: %d #indices: %d", i1, numVertices)
 	}
 	i2, err := strconv.ParseInt(indices[1], 10, 64)
 	if err != nil {
-		return m.Triangle{}, err
+		return m.Face{}, err
 	}
 	if i2 < 1 || numVertices < i2 {
-		return m.Triangle{}, fmt.Errorf("Invalid index: %d #indices: %d", i2, numVertices)
+		return m.Face{}, fmt.Errorf("Invalid index: %d #indices: %d", i2, numVertices)
 	}
 	i3, err := strconv.ParseInt(indices[2], 10, 64)
 	if err != nil {
-		return m.Triangle{}, err
+		return m.Face{}, err
 	}
 	if i3 < 1 || numVertices < i3 {
-		return m.Triangle{}, fmt.Errorf("Invalid index: %d #indices: %d", i3, numVertices)
+		return m.Face{}, fmt.Errorf("Invalid index: %d #indices: %d", i3, numVertices)
 	}
 	// TODO: coordinate handedness!
-	return m.NewTriangle(vertices[i3-1], vertices[i2-1], vertices[i1-1], mat), nil
+	return m.NewFace(i3-1, i2-1, i1-1), nil
 }
 
-func toObject(triangles []m.Object) (m.Object, error) {
-	if len(triangles) == 0 {
+func toObject(vertices []m.Vector, faces []m.Face, mat m.Material) (m.Object, error) {
+	if len(faces) == 0 {
 		return nil, errors.New("Object list empty")
 	}
-	centerTrianglesOnOrigin(triangles)
-	return m.NewComplexObject(triangles), nil
-}
-
-func centerTrianglesOnOrigin(triangles []m.Object) {
-	b := m.ObjectsBound(triangles, m.ScaleUniform(1.0))
-	objectToOrigin := m.Translate(b.Centroid()).Inverse()
-
-	for i, tobj := range triangles {
-		t := tobj.(m.Triangle)
-		triangles[i] = m.NewTriangle(
-			objectToOrigin.Point(t.P0),
-			objectToOrigin.Point(t.P1),
-			objectToOrigin.Point(t.P2),
-			t.Material)
-	}
+	vertices = gen.CenterPointsOnOrigin(vertices)
+	return m.NewTriangleMesh(vertices, faces, mat), nil
 }

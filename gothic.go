@@ -40,11 +40,15 @@ func createArch(pL, pR, mL, mR m.Vector, numPoints int) arch {
 	c := gen.NewCircle(mL, r)
 	upperLeftArc := c.PointsPhaseRange(math.Pi, math.Pi-alpha, numPoints, m.Vector{1, 0, 0}, m.Vector{0, 1, 0})
 	c = gen.NewCircle(mR, r)
-	upperRightArc := c.PointsPhaseRange(alpha, 0, numPoints, m.Vector{1, 0, 0}, m.Vector{0, 1, 0})
+	upperRightArc := c.PointsPhaseRange(0, alpha, numPoints, m.Vector{1, 0, 0}, m.Vector{0, 1, 0})
+	rev := make([]m.Vector, len(upperRightArc))
+	for i, v := range upperRightArc {
+		rev[len(upperRightArc)-1-i] = v
+	}
 
 	return arch{
 		left:  upperLeftArc,
-		right: upperRightArc,
+		right: rev,
 	}
 }
 
@@ -123,7 +127,7 @@ func archWindowWall(params archWindowWallParams) m.Object {
 		Inner:    [][]m.Vector{wholeArch},
 		Material: params.material,
 	}
-	return gen.Extrude(ef, m.Vector{0, 0, params.depth})
+	return ef.Extrude(m.Vector{0, 0, params.depth})
 }
 
 func roundedArchWindowWall(params archWindowWallParams) m.Object {
@@ -189,7 +193,7 @@ func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 		Inner:    [][]m.Vector{innerFrame},
 		Material: params.material,
 	}
-	return gen.Extrude(ef, m.Vector{0, 0, params.depth})
+	return ef.Extrude(m.Vector{0, 0, params.depth})
 }
 
 type archWindowTraceryParams struct {
@@ -312,7 +316,7 @@ func rosette(params rosetteParams) m.Object {
 		Inner:    [][]m.Vector{ipRev},
 		Material: params.material,
 	}
-	circle := gen.Extrude(ef, m.Vector{0, 0, params.depth})
+	circle := ef.Extrude(m.Vector{0, 0, params.depth})
 
 	alpha := (2 * math.Pi) / float64(params.numFoils)
 	rR := params.radius + params.width
@@ -346,7 +350,7 @@ func rosette(params rosetteParams) m.Object {
 			Outer:    [][]m.Vector{op},
 			Material: params.material,
 		}
-		foils[n] = gen.Extrude(ef, m.Vector{0, 0, params.depth})
+		foils[n] = ef.Extrude(m.Vector{0, 0, params.depth})
 	}
 	return m.NewComplexObject(append(foils, circle))
 }

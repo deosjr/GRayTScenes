@@ -10,11 +10,14 @@ import (
 // D. M. Raup - Geometric Analysis of Shell Coiling: General Problems (1966)
 // variable naming after R. Dawkins - Climbing Mount Improbable (1996)
 
-// For extra inspiration maybe check
+// For extra inspiration/to fix errors maybe check
 // Bernard Tursch - Spiral Growth: The 'Museum of All Shells' Revisited (1996)
+// Deborah R. Fowler, Hans Meinhardt, Przemyslaw Prusinkiewicz - Modeling Seashells (1992)
+// C Illert - Formulation and Solution of the Classical Seashell Problem (1989)
 
-// TODO: spire=0 gives stack overflow errors in bvh.go... ?
+// TODO: spire=0 gives stack overflow errors in bvh.go... ? revisit with max recursion limit
 // TODO: param definitions between different papers seem all over the place.
+// have a look at more recent papers for an overview
 
 // flare: Raup's W
 // If w1 is the distance between a point P1 on the generating spiral and that spiral's axis,
@@ -58,7 +61,7 @@ func generateShell(flare, verm, spire float64, numWindings int) m.Object {
 	// a - Da = Dr + r = r(D + 1)
 	// r = (a - Da) / (D + 1) = -(D - 1) * a / (D + 1)
 
-	generatingCurve := gen.NewCircle(func(t float64) float64 {
+	generatingCurve := gen.NewRadialCircle(func(t float64) float64 {
 		return (-verm + 1) * aFunc(t) / (verm + 1)
 	}, 100)
 	numSteps := 64 * numWindings

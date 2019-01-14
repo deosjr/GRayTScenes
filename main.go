@@ -75,8 +75,19 @@ func main() {
 		}
 	}
 
+	//outside floor
 	mat = &m.DiffuseMaterial{m.NewColor(50, 150, 0)}
 	q := m.NewQuadrilateral(m.Vector{-5, 0, 0}, m.Vector{5, 0, 0}, m.Vector{5, 0, 3}, m.Vector{-5, 0, 3}, mat)
+	scene.Add(q.Tesselate())
+
+	//inside floor
+	mat = &m.DiffuseMaterial{m.NewColor(250, 150, 0)}
+	q = m.NewQuadrilateral(m.Vector{-25, 0, 3}, m.Vector{25, 0, 3}, m.Vector{25, 0, 10}, m.Vector{-25, 0, 10}, mat)
+	scene.Add(q.Tesselate())
+
+	//inside wall
+	mat = &m.DiffuseMaterial{m.NewColor(100, 100, 100)}
+	q = m.NewQuadrilateral(m.Vector{25, 0, 10}, m.Vector{25, 10, 10}, m.Vector{-25, 10, 10}, m.Vector{-25, 0, 10}, mat)
 	scene.Add(q.Tesselate())
 
 	scene.Precompute()

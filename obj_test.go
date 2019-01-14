@@ -12,7 +12,7 @@ import (
 func TestLoadObj(t *testing.T) {
 	for i, tt := range []struct {
 		obj  string
-		want []m.Object
+		want m.ComplexObject
 	}{
 		{
 			obj:  `# empty file`,
@@ -47,7 +47,6 @@ func TestLoadObj(t *testing.T) {
 			t.Errorf("%d): expected nil, got: %s", i, got)
 			continue
 		}
-		centerTrianglesOnOrigin(tt.want)
 		want := m.NewComplexObject(tt.want)
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("%d): got %v want %v", i, got, want)
