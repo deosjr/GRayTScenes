@@ -30,14 +30,14 @@ func SaveObj(o m.Object) string {
 		v1, ok := vertexMap[t.P1]
 		if !ok {
 			v1 = int64(len(vertexMap)) + 1
-			vertexMap[t.P0] = v1
-			vertices = append(vertices, t.P0)
+			vertexMap[t.P1] = v1
+			vertices = append(vertices, t.P1)
 		}
 		v2, ok := vertexMap[t.P2]
 		if !ok {
 			v2 = int64(len(vertexMap)) + 1
-			vertexMap[t.P0] = v2
-			vertices = append(vertices, t.P0)
+			vertexMap[t.P2] = v2
+			vertices = append(vertices, t.P2)
 		}
 		// TODO: coordinate handedness!
 		faces[i] = m.Face{v2, v1, v0}
