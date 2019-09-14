@@ -13,6 +13,7 @@ var (
 	width      uint = 1600
 	height     uint = 1200
 	numWorkers      = 10
+	numSamples      = 100
 
 	ex = m.Vector{1, 0, 0}
 	ey = m.Vector{0, 1, 0}
@@ -84,7 +85,7 @@ func main() {
 	board := NewZoneMortalis(zmp)
 	scene.Add(board)
 
-	radmat := &m.RadiantMaterial{Color: m.NewColor(0, 200, 255)}
+	radmat := &m.RadiantMaterial{Color: m.NewColor(176, 237, 255)}
 	skybox := m.NewCuboid(m.NewAABB(m.Vector{-1000, -1000, -1000}, m.Vector{1000, 1000, 1000}), radmat)
 	scene.Add(skybox.TesselateInsideOut())
 
@@ -95,7 +96,7 @@ func main() {
 	//	from, to := m.Vector{25, 150, -50}, m.Vector{25, 0, 150}
 	from, to := m.Vector{600, 250, -50}, m.Vector{600, 0, 250}
 	camera.LookAt(from, to, ey)
-	film := render.RenderWithPathTracer(scene, numWorkers, 10)
+	film := render.RenderWithPathTracer(scene, numWorkers, numSamples)
 	//film := render.RenderNaive(scene, numWorkers)
 	film.SaveAsPNG("out.png")
 }

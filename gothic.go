@@ -180,12 +180,7 @@ func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 	innerFrame := append([]m.Vector{ipR, ibpR, ibpL, ipL}, innerArch.left...)
 	innerFrame = append(innerFrame, innerArch.right...)
 
-	triangles := gen.JoinPoints([][]m.Vector{outerFrame, innerFrame}, params.material)
-	front := make([]m.Triangle, len(triangles))
-	for i, o := range triangles {
-		t := o.(m.Triangle)
-		front[i] = t
-	}
+	front := gen.JoinPoints([][]m.Vector{outerFrame, innerFrame}, params.material)
 
 	ef := gen.ExtrusionFace{
 		Front:    front,
@@ -307,8 +302,8 @@ func rosette(params rosetteParams) m.Object {
 
 	triangles := gen.JoinPoints([][]m.Vector{ip, op}, params.material)
 	rface := make([]m.Triangle, len(triangles))
-	for i, o := range triangles {
-		rface[len(triangles)-1-i] = o.(m.Triangle)
+	for i, t := range triangles {
+		rface[len(triangles)-1-i] = t
 	}
 	ef := gen.ExtrusionFace{
 		Front:    rface,
@@ -342,8 +337,8 @@ func rosette(params rosetteParams) m.Object {
 
 		triangles = gen.JoinPointsNonCircular([][]m.Vector{ip, op}, params.material)
 		rface = make([]m.Triangle, len(triangles))
-		for i, o := range triangles {
-			rface[len(triangles)-1-i] = o.(m.Triangle)
+		for i, t := range triangles {
+			rface[len(triangles)-1-i] = t
 		}
 		ef = gen.ExtrusionFace{
 			Front:    rface,
