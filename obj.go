@@ -61,6 +61,15 @@ func trianglesFromObject(objects ...m.Object) []m.Triangle {
 			triangles = append(triangles, t)
 		case *m.ComplexObject:
 			triangles = append(triangles, trianglesFromObject(t.Objects()...)...)
+		case *m.SharedObject:
+			trs := trianglesFromObject(t.Object)
+			for _, tr := range trs {
+				p0 := t.ObjectToWorld.Point(tr.P0)
+				p1 := t.ObjectToWorld.Point(tr.P1)
+				p2 := t.ObjectToWorld.Point(tr.P2)
+				newTr := m.NewTriangle(p0, p1, p2, tr.Material)
+				triangles = append(triangles, newTr)
+			}
 		}
 	}
 	return triangles
