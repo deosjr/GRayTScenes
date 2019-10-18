@@ -119,7 +119,7 @@ func NewZoneMortalis(p ZoneMortalisParameters) m.Object {
 	i := 0
 	for z := 0; z < 4; z++ {
 		for x := 0; x < 4; x++ {
-			transform := m.Translate(m.Vector{float64(x * 300), 0, float64(z * 300)})
+			transform := m.Translate(m.Vector{float32(x * 300), 0, float32(z * 300)})
 			if n := r.Intn(4); n != 0 {
 				transform = transform.Mul(m.Translate(m.Vector{150, 0, 150}))
 				transform = transform.Mul(m.RotateY(float64(n) * math.Pi / 2.0).Mul(m.Translate(m.Vector{-150, 0, -150})))
@@ -152,23 +152,23 @@ func newTile(squaredef [6][6]rune, p ZoneMortalisParameters) m.Object {
 		for x := 0; x < 6; x++ {
 			switch squaredef[z][x] {
 			case 'x':
-				transform := m.Translate(m.Vector{float64(50 * x), 1, 250.0 - float64(50*z)})
+				transform := m.Translate(m.Vector{float32(50 * x), 1, 250.0 - float32(50*z)})
 				c := m.NewSharedObject(p.corner, transform)
 				squares = append(squares, c)
 			case '-':
-				transform := m.Translate(m.Vector{float64(50 * x), 1, 250.0 - float64(50*z)})
+				transform := m.Translate(m.Vector{float32(50 * x), 1, 250.0 - float32(50*z)})
 				//transform = transform.Mul(m.Translate(m.Vector{25, 0, 25}))
 				//transform = transform.Mul(m.RotateY(math.Pi / 2.0).Mul(m.Translate(m.Vector{-25, 0, -25})))
 				w := m.NewSharedObject(p.wall, transform)
 				squares = append(squares, w)
 			case '|':
-				transform := m.Translate(m.Vector{float64(50 * x), 1, 250.0 - float64(50*z)})
+				transform := m.Translate(m.Vector{float32(50 * x), 1, 250.0 - float32(50*z)})
 				transform = transform.Mul(m.Translate(m.Vector{25, 0, 25}))
 				transform = transform.Mul(m.RotateY(math.Pi / 2.0).Mul(m.Translate(m.Vector{-25, 0, -25})))
 				w := m.NewSharedObject(p.wall, transform)
 				squares = append(squares, w)
 			case ' ':
-				transform := m.Translate(m.Vector{0.5 + float64(50*x), 1, 0.5 + 250.0 - float64(50*z)})
+				transform := m.Translate(m.Vector{0.5 + float32(50*x), 1, 0.5 + 250.0 - float32(50*z)})
 				s := m.NewSharedObject(p.floor, transform)
 				squares = append(squares, s)
 			}

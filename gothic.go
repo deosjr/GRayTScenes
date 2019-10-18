@@ -33,9 +33,9 @@ func createArch(pL, pR, mL, mR m.Vector, numPoints int) arch {
 
 	pLpR := m.VectorFromTo(pL, pR).Length()
 	pM := pL.Add(m.VectorFromTo(pL, pR).Times(0.5))
-	y := math.Sqrt(pLpR * (r - (pLpR / 4.0)))
+	y := float32(math.Sqrt(float64(pLpR * (r - (pLpR / 4.0)))))
 	top := pM.Add(m.Vector{0, y, 0})
-	alpha := math.Atan2(m.VectorFromTo(top, pM).Length(), m.VectorFromTo(pM, mL).Length())
+	alpha := math.Atan2(float64(m.VectorFromTo(top, pM).Length()), float64(m.VectorFromTo(pM, mL).Length()))
 
 	c := gen.NewCircle(mL, r)
 	upperLeftArc := c.PointsPhaseRange(math.Pi, math.Pi-alpha, numPoints, m.Vector{1, 0, 0}, m.Vector{0, 1, 0})
@@ -57,14 +57,14 @@ type archWindowWallParams struct {
 	// four points from llhc to ulhc, counterclockwise
 	rectOutline m.Quadrilateral
 	// ratio r / distance(pL, pR), excess >= 0.5
-	excess float64
+	excess float32
 	// padding between outline and window
-	xPadding      float64
-	bottomPadding float64
+	xPadding      float32
+	bottomPadding float32
 	// depth of extrusion
-	depth float64
+	depth float32
 	// height of upper segment endpoints pL and pR
-	pLpRY float64
+	pLpRY float32
 	// number of points on a quarter circle arc
 	numPoints int
 }
@@ -143,11 +143,11 @@ func equilateralArchWindowWall(params archWindowWallParams) m.Object {
 type emptyArchWindowTraceryParams struct {
 	material m.Material
 	// ratio r / distance(pL, pR), excess >= 0.5
-	excess float64
+	excess float32
 	// width of tracery, extends inwards
-	offset float64
+	offset float32
 	// depth of extrusion
-	depth float64
+	depth float32
 	// pL and pR, left and right endpoints of the arch
 	pL m.Vector
 	pR m.Vector
@@ -194,15 +194,15 @@ func emptyArchWindowTracery(params emptyArchWindowTraceryParams) m.Object {
 type archWindowTraceryParams struct {
 	material m.Material
 	// ratio r / distance(pL, pR), excess >= 0.5
-	excess float64
+	excess float32
 	// outerWidth is the width of outermost arch
 	// innerWidth is the width of the inner tracery
-	outerWidth float64
-	innerWidth float64
+	outerWidth float32
+	innerWidth float32
 	// offset between main and subarch points
-	verticalOffset float64
+	verticalOffset float32
 	// depth of extrusion
-	depth float64
+	depth float32
 	// pL and pR, left and right endpoints of the arch
 	pL m.Vector
 	pR m.Vector
@@ -254,8 +254,8 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 	center := mR.Add(m.VectorFromTo(mR, mLR).Times(0.5))
 	a := (rR + rLR) / 2.0
 	c := m.VectorFromTo(mR, mLR).Length() * 0.5
-	b := math.Sqrt(a*a - c*c)
-	y := (a/b)*math.Sqrt(b*b-math.Pow(pM.X-center.X, 2)) + center.Y
+	b := float32(math.Sqrt(float64(a*a - c*c)))
+	y := (a/b)*float32(math.Sqrt(float64(b*b)-math.Pow(float64(pM.X-center.X), 2))) + center.Y
 	mC := m.Vector{pM.X, y, 0}
 	r := rR - m.VectorFromTo(mC, mR).Length()
 	rparams := rosetteParams{
@@ -282,9 +282,9 @@ func archWindowTracery(params archWindowTraceryParams) m.Object {
 type rosetteParams struct {
 	material  m.Material
 	center    m.Vector
-	radius    float64
-	width     float64
-	depth     float64
+	radius    float32
+	width     float32
+	depth     float32
 	numPoints int
 	numFoils  int
 	// TODO lying vs standing
@@ -315,7 +315,7 @@ func rosette(params rosetteParams) m.Object {
 
 	alpha := (2 * math.Pi) / float64(params.numFoils)
 	rR := params.radius + params.width
-	rF := (math.Sin(alpha/2.0) * rR) / (math.Sin(alpha/2.0) + 1)
+	rF := float32((math.Sin(alpha/2.0) * float64(rR)) / (math.Sin(alpha/2.0) + 1))
 	foilCircle := gen.NewCircle(params.center, rR-rF)
 
 	foils := make([]m.Object, params.numFoils)

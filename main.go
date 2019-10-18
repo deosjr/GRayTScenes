@@ -13,7 +13,7 @@ var (
 	width      uint = 1600
 	height     uint = 1200
 	numWorkers      = 10
-	numSamples      = 100
+	numSamples      = 10
 
 	ex = m.Vector{1, 0, 0}
 	ey = m.Vector{0, 1, 0}
@@ -26,10 +26,10 @@ func main() {
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
-	//	l1 := m.NewDistantLight(m.Vector{-1, -1, 1}, m.NewColor(255, 255, 255), 20)
-	//	l2 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 20)
+	//l1 := m.NewDistantLight(m.Vector{-1, -1, 1}, m.NewColor(255, 255, 255), 20)
+	//l2 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 20)
 	// l2 := m.NewPointLight(m.Vector{-2, 4.5, 7}, m.NewColor(255, 255, 255), 500)
-	//	scene.AddLights(l1, l2)
+	//scene.AddLights(l1, l2)
 
 	m.SetBackgroundColor(m.NewColor(0, 0, 0))
 	mat := &m.DiffuseMaterial{Color: m.NewColor(100, 100, 100)}
@@ -87,8 +87,10 @@ func main() {
 
 	radmat := &m.RadiantMaterial{Color: m.NewColor(176, 237, 255)}
 	skybox := m.NewCuboid(m.NewAABB(m.Vector{-1000, -1000, -1000}, m.Vector{1000, 1000, 1000}), radmat)
-	scene.Add(skybox.TesselateInsideOut())
-
+	triangles := skybox.TesselateInsideOut()
+	skyboxObject := m.NewTriangleComplexObject(triangles)
+	scene.Add(skyboxObject)
+	scene.Emitters = triangles
 	scene.Precompute()
 
 	fmt.Println("Rendering...")
