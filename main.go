@@ -23,6 +23,7 @@ var (
 func main() {
 
 	fmt.Println("Creating scene...")
+	m.SIMD_ENABLED = true
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
@@ -98,7 +99,15 @@ func main() {
 	//	from, to := m.Vector{25, 150, -50}, m.Vector{25, 0, 150}
 	from, to := m.Vector{600, 250, -50}, m.Vector{600, 0, 250}
 	camera.LookAt(from, to, ey)
-	film := render.RenderWithPathTracer(scene, numWorkers, numSamples)
+
+	params := render.Params{
+		Scene:        scene,
+		NumWorkers:   numWorkers,
+		NumSamples:   numSamples,
+		AntiAliasing: true,
+		TracerType:   m.PathNextEventEstimate,
+	}
+	film := render.Render(params)
 	//film := render.RenderNaive(scene, numWorkers)
 	film.SaveAsPNG("out.png")
 }
