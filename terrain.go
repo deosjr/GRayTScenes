@@ -35,7 +35,7 @@ func perlinHeightMap(grid [][]model.Vector, n int, weights []float64, pow float6
 			// map from [-1,1] to [0,1]
 			noise = (noise + 1) / 2
 			noise = math.Pow(noise, pow)
-			grid[y][x].Y = noise
+			grid[y][x].Y = float32(noise)
 		}
 	}
 	return grid
@@ -43,14 +43,14 @@ func perlinHeightMap(grid [][]model.Vector, n int, weights []float64, pow float6
 
 // assumption: r is a rectangle
 func toPointGrid(r model.Quadrilateral, roughSize float64) [][]model.Vector {
-	xlen := model.VectorFromTo(r.P1, r.P2).Length()
-	ylen := model.VectorFromTo(r.P1, r.P4).Length()
+	xlen := float64(model.VectorFromTo(r.P1, r.P2).Length())
+	ylen := float64(model.VectorFromTo(r.P1, r.P4).Length())
 	numDivisionsX := math.Ceil(xlen / roughSize)
 	numDivisionsY := math.Ceil(ylen / roughSize)
 	pointSizeX := xlen / numDivisionsX
 	pointSizeY := ylen / numDivisionsY
-	xVector := model.VectorFromTo(r.P1, r.P2).Normalize().Times(pointSizeX)
-	yVector := model.VectorFromTo(r.P1, r.P4).Normalize().Times(pointSizeY)
+	xVector := model.VectorFromTo(r.P1, r.P2).Normalize().Times(float32(pointSizeX))
+	yVector := model.VectorFromTo(r.P1, r.P4).Normalize().Times(float32(pointSizeY))
 
 	numPointsX := int(numDivisionsX) + 1
 	numPointsY := int(numDivisionsY) + 1
@@ -59,7 +59,7 @@ func toPointGrid(r model.Quadrilateral, roughSize float64) [][]model.Vector {
 	for y := 0; y < numPointsY; y++ {
 		row := make([]model.Vector, numPointsX)
 		for x := 0; x < numPointsX; x++ {
-			row[x] = r.P1.Add(xVector.Times(float64(x))).Add(yVector.Times(float64(y)))
+			row[x] = r.P1.Add(xVector.Times(float32(x))).Add(yVector.Times(float32(y)))
 		}
 		grid[y] = row
 	}
@@ -87,13 +87,13 @@ func gridToTriangles(grid [][]model.Vector, mat model.Material) model.Object {
 
 // assumption: q is perpendicular to z
 func poisson(q model.Quadrilateral, r float64) []model.Vector {
-	x0, y0 := q.P1.X, q.P1.Y
-	x1, y1 := q.P3.X, q.P3.Y
+	x0, y0 := float64(q.P1.X), float64(q.P1.Y)
+	x1, y1 := float64(q.P3.X), float64(q.P3.Y)
 	k := 30
 	points := poissondisc.Sample(x0, y0, x1, y1, r, k, nil)
 	vectors := make([]model.Vector, len(points))
 	for i, p := range points {
-		vectors[i] = model.Vector{p.X, p.Y, 0.0}
+		vectors[i] = model.Vector{float32(p.X), float32(p.Y), 0.0}
 	}
 	return vectors
 }

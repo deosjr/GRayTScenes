@@ -27,64 +27,69 @@ func main() {
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
+	//pointLight := m.NewPointLight(m.Vector{250, 500, 100}, m.NewColor(255, 255, 255), 50000000)
+	//scene.AddLights(pointLight)
+
 	//l1 := m.NewDistantLight(m.Vector{-1, -1, 1}, m.NewColor(255, 255, 255), 20)
 	//l2 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 20)
 	// l2 := m.NewPointLight(m.Vector{-2, 4.5, 7}, m.NewColor(255, 255, 255), 500)
 	//scene.AddLights(l1, l2)
 
-	m.SetBackgroundColor(m.NewColor(0, 0, 0))
-	mat := &m.DiffuseMaterial{Color: m.NewColor(100, 100, 100)}
+	m.SetBackgroundColor(m.NewColor(15, 200, 215))
 
-	// extrude a wall
-	awwparams := archWindowWallParams{
-		rectOutline:   m.NewQuadrilateral(m.Vector{0, 0, 0}, m.Vector{50, 0, 0}, m.Vector{50, 100, 0}, m.Vector{0, 100, 0}, mat),
-		excess:        1.25,
-		xPadding:      15,
-		bottomPadding: 20,
-		depth:         10,
-		pLpRY:         2 * (100.0 / 3.0),
-		numPoints:     100,
-		material:      mat,
-	}
-	wallOrigin := archWindowWall(awwparams)
-	transform := m.Translate(m.Vector{0, 0, 20})
-	wall := m.NewSharedObject(wallOrigin, transform)
+	mat := &m.DiffuseMaterial{Color: m.NewColor(255, 255, 255)}
+	c := gen.NewRadialCircle(func(t float64) float32 { return 0.03 }, 10)
+	c1 := c.Points(m.Vector{0, 0, 0}, m.Vector{1, 0, 0}, m.Vector{0, 0, 1}, 0)
+	c2 := c.Points(m.Vector{0, 1, 0}, m.Vector{1, 0, 0}, m.Vector{0, 0, 1}, 0)
+	trunkTriangles := gen.JoinPoints([][]m.Vector{c2, c1}, mat)
+	trunk := m.NewTriangleComplexObject(trunkTriangles)
 
-	// extrude a corner
-	t := []m.Vector{{0, 0, 50}, {50, 0, 50}, {50, 0, 0}, {0, 0, 0}}
-	t1 := m.NewTriangle(t[0], t[1], t[2], mat)
-	t2 := m.NewTriangle(t[0], t[2], t[3], mat)
-	front := []m.Triangle{t1, t2}
+	mat = &m.DiffuseMaterial{Color: m.NewColor(255, 180, 40)}
+	leaves := m.NewSphere(m.Vector{0, 1.5, 0}, 0.5, mat)
+	treeObject := m.NewComplexObject([]m.Object{trunk, leaves})
 
-	ef := gen.ExtrusionFace{
-		Front:    front,
-		Outer:    [][]m.Vector{t},
-		Material: mat,
-	}
-	corner := ef.Extrude(m.Vector{0, 100, 0})
-
-	// extrude a square
-	t = []m.Vector{{0, 0, 49}, {49, 0, 49}, {49, 0, 0}, {0, 0, 0}}
-	t1 = m.NewTriangle(t[0], t[1], t[2], mat)
-	t2 = m.NewTriangle(t[0], t[2], t[3], mat)
-	front = []m.Triangle{t1, t2}
-
-	ef = gen.ExtrusionFace{
-		Front:    front,
-		Outer:    [][]m.Vector{t},
-		Material: mat,
-	}
-	square := ef.Extrude(m.Vector{0, 0.3, 0})
-
-	zmp := ZoneMortalisParameters{
-		floor:    square,
-		wall:     wall,
-		corner:   corner,
-		material: mat,
+	// poisson disc sampling allows a random distribution
+	// which enforces distance at least r between points
+	q := m.Quadrilateral{P1: m.Vector{-5.0, -5.0, 0.0}, P3: m.Vector{-2.0, 5.0, 0.0}}
+	points := poisson(q, 1.0)
+	for _, p := range points {
+		translation := m.Translate(m.Vector{p.X, 0, p.Y})
+		rotation := m.RotateY(math.Pi / 4.0)
+		tree := m.NewSharedObject(treeObject, translation.Mul(rotation))
+		scene.Add(tree)
 	}
 
-	board := NewZoneMortalis(zmp)
-	scene.Add(board)
+	q = m.Quadrilateral{P1: m.Vector{2.0, -5.0, 0.0}, P3: m.Vector{5.0, 5.0, 0.0}}
+	points = poisson(q, 1.0)
+	for _, p := range points {
+		translation := m.Translate(m.Vector{p.X, 0, p.Y})
+		rotation := m.RotateY(math.Pi / 4.0)
+		tree := m.NewSharedObject(treeObject, translation.Mul(rotation))
+		scene.Add(tree)
+	}
+
+	flatColor := &m.DiffuseMaterial{Color: m.NewColor(255, 180, 40)}
+	steepColor := &m.DiffuseMaterial{Color: m.NewColor(50, 50, 50)}
+	fmat := &m.PosFuncMat{
+		Func: func(si *m.SurfaceInteraction) m.Color {
+			if si.GetNormal().Dot(ey) > 0.99 {
+				return flatColor.GetColor(si)
+			}
+			return steepColor.GetColor(si)
+		},
+	}
+	q = m.NewQuadrilateral(
+		m.Vector{-5.0, 0.0, 5.0},
+		m.Vector{5.0, 0.0, 5.0},
+		m.Vector{5.0, 0.0, -5.0},
+		m.Vector{-5.0, 0.0, -5.0},
+		fmat,
+	)
+	grid := toPointGrid(q, 0.05)
+	// perlin := perlinHeightMap(grid, 3, []float64{0.5, 0.7, 0.25, 0.15}, 3.75)
+	perlin := perlinHeightMap(grid, 3, []float64{0.5, 0.7, 0.25, 0.15}, 1.75)
+	ground := gridToTriangles(perlin, fmat)
+	scene.Add(ground)
 
 	radmat := &m.RadiantMaterial{Color: m.NewColor(176, 237, 255)}
 	skybox := m.NewCuboid(m.NewAABB(m.Vector{-1000, -1000, -1000}, m.Vector{1000, 1000, 1000}), radmat)
@@ -97,7 +102,7 @@ func main() {
 	fmt.Println("Rendering...")
 
 	//	from, to := m.Vector{25, 150, -50}, m.Vector{25, 0, 150}
-	from, to := m.Vector{600, 250, -50}, m.Vector{600, 0, 250}
+	from, to := m.Vector{0, 1, -2}, m.Vector{0, 0, 10}
 	camera.LookAt(from, to, ey)
 
 	params := render.Params{
