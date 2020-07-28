@@ -15,6 +15,7 @@ import (
 // SaveObj builds a string in .obj format
 // representing the list of triangles
 // NOTE: .obj vertex count is 1-based
+// NOTE: .obj line values are whitespace-separated
 func SaveObj(o m.Object) string {
 	triangles := trianglesFromObject(o)
 	vertices := []m.Vector{}
@@ -39,8 +40,7 @@ func SaveObj(o m.Object) string {
 			vertexMap[t.P2] = v2
 			vertices = append(vertices, t.P2)
 		}
-		// TODO: coordinate handedness!
-		faces[i] = m.Face{v2, v1, v0}
+		faces[i] = m.Face{v0, v1, v2}
 	}
 
 	s := ""
@@ -123,19 +123,19 @@ func readVertex(coordinates []string) (m.Vector, error) {
 	if len(coordinates) != 3 {
 		return m.Vector{}, fmt.Errorf("Invalid coordinates: %v", coordinates)
 	}
-	p1, err := strconv.ParseFloat(coordinates[0], 64)
+	p1, err := strconv.ParseFloat(coordinates[0], 32)
 	if err != nil {
 		return m.Vector{}, err
 	}
-	p2, err := strconv.ParseFloat(coordinates[1], 64)
+	p2, err := strconv.ParseFloat(coordinates[1], 32)
 	if err != nil {
 		return m.Vector{}, err
 	}
-	p3, err := strconv.ParseFloat(coordinates[2], 64)
+	p3, err := strconv.ParseFloat(coordinates[2], 32)
 	if err != nil {
 		return m.Vector{}, err
 	}
-	return m.Vector{p1, p2, p3}, nil
+	return m.Vector{float32(p1), float32(p2), float32(p3)}, nil
 }
 
 func readFace(indices []string, numVertices int64) (m.Face, error) {
@@ -164,8 +164,7 @@ func readFace(indices []string, numVertices int64) (m.Face, error) {
 	if i3 < 1 || numVertices < i3 {
 		return m.Face{}, fmt.Errorf("Invalid index: %d #indices: %d", i3, numVertices)
 	}
-	// TODO: coordinate handedness!
-	return m.NewFace(i3-1, i2-1, i1-1), nil
+	return m.NewFace(i1-1, i2-1, i3-1), nil
 }
 
 func toObject(vertices []m.Vector, faces []m.Face, mat m.Material) (m.Object, error) {

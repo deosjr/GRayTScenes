@@ -61,12 +61,12 @@ func generateShell(flare, verm, spire float64, numWindings int) m.Object {
 	// a - Da = Dr + r = r(D + 1)
 	// r = (a - Da) / (D + 1) = -(D - 1) * a / (D + 1)
 
-	generatingCurve := gen.NewRadialCircle(func(t float64) float64 {
-		return (-verm + 1) * aFunc(t) / (verm + 1)
+	generatingCurve := gen.NewRadialCircle(func(t float64) float32 {
+		return float32((-verm + 2) * aFunc(t) / (verm + 1))
 	}, 100)
 	numSteps := 64 * numWindings
 	stepSize := math.Pi / 32.0
-	mat := &m.DiffuseMaterial{m.NewColor(200, 100, 0)}
+	mat := &m.DiffuseMaterial{Color:m.NewColor(200, 100, 0)}
 
 	po := gen.NewParametricObject(helix, generatingCurve, numSteps, stepSize, mat)
 	return po.Build()

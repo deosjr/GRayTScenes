@@ -16,7 +16,7 @@ var (
 	width      uint = 1600
 	height     uint = 1200
 	numWorkers      = 10
-	numSamples      = 100
+	numSamples      = 10
 
 	ex = m.Vector{1, 0, 0}
 	ey = m.Vector{0, 1, 0}
@@ -30,8 +30,8 @@ func main() {
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
-	//pointLight := m.NewPointLight(m.Vector{250, 500, 100}, m.NewColor(255, 255, 255), 50000000)
-	//scene.AddLights(pointLight)
+	pointLight := m.NewPointLight(m.Vector{0, 10, -100}, m.NewColor(255, 255, 255), 50000000)
+	scene.AddLights(pointLight)
 
 	//l1 := m.NewDistantLight(m.Vector{-1, -1, 1}, m.NewColor(255, 255, 255), 20)
 	//l2 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 20)
@@ -132,9 +132,9 @@ func main() {
 		NumWorkers:   numWorkers,
 		NumSamples:   numSamples,
 		AntiAliasing: true,
+		//TracerType: 	m.WhittedStyle,
 		TracerType:   m.PathNextEventEstimate,
 	}
 	film := render.Render(params)
-	//film := render.RenderNaive(scene, numWorkers)
 	film.SaveAsPNG("out.png")
 }

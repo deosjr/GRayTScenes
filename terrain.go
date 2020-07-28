@@ -77,8 +77,8 @@ func gridToTriangles(grid [][]model.Vector, mat model.Material) model.Object {
 			p2 := grid[y][x+1]
 			p3 := grid[y+1][x+1]
 			p4 := grid[y+1][x]
-			t1 := model.NewTriangle(p1, p4, p2, mat)
-			t2 := model.NewTriangle(p4, p3, p2, mat)
+			t1 := model.NewTriangle(p1, p2, p4, mat)
+			t2 := model.NewTriangle(p2, p3, p4, mat)
 			triangles = append(triangles, t1, t2)
 		}
 	}
