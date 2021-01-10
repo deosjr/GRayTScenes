@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"math"
-	"math/rand"
+    "math"
+    "math/rand"
 
-	"github.com/pzsz/voronoi"
+    //TODO: replace with fogleman delaunay lib
+    "github.com/pzsz/voronoi"
 
 	m "github.com/deosjr/GRayT/src/model"
 	"github.com/deosjr/GRayT/src/render"
@@ -30,15 +31,16 @@ func main() {
 	camera := m.NewPerspectiveCamera(width, height, 0.5*math.Pi)
 	scene := m.NewScene(camera)
 
-	pointLight := m.NewPointLight(m.Vector{0, 10, -100}, m.NewColor(255, 255, 255), 50000000)
-	scene.AddLights(pointLight)
+	pointLight := m.NewPointLight(m.Vector{0, 10, -100}, m.NewColor(255, 255, 255), 500000)
+	pointLight2 := m.NewPointLight(m.Vector{0, 10, 100}, m.NewColor(255, 255, 255), 500000)
+	scene.AddLights(pointLight, pointLight2)
 
 	//l1 := m.NewDistantLight(m.Vector{-1, -1, 1}, m.NewColor(255, 255, 255), 20)
 	//l2 := m.NewDistantLight(m.Vector{1, -1, 1}, m.NewColor(255, 255, 255), 20)
 	// l2 := m.NewPointLight(m.Vector{-2, 4.5, 7}, m.NewColor(255, 255, 255), 500)
 	//scene.AddLights(l1, l2)
 
-	m.SetBackgroundColor(m.NewColor(15, 200, 215))
+	//m.SetBackgroundColor(m.NewColor(15, 200, 215))
 
 	q := m.Quadrilateral{P1: m.Vector{-5.0, -5.0, 0.0}, P2: m.Vector{5.0, -5.0, 0.0}, P3: m.Vector{5.0, 5.0, 0.0}, P4: m.Vector{-5.0, -5.0, 0.0}}
 	points := poisson(q, 1.0)
@@ -107,15 +109,24 @@ func main() {
 	}
 
 	for _, cell := range cells {
-		mat := &m.DiffuseMaterial{Color: m.NewColor(uint8(rand.Intn(256)), uint8(rand.Intn(256)), uint8(rand.Intn(256)))}
+		mat := m.NewDiffuseMaterial(m.ConstantTexture{Color: m.NewColor(uint8(rand.Intn(256)), uint8(rand.Intn(256)), uint8(rand.Intn(256)))})
 		depth := -5 * rand.Float32()
 		esf := gen.ExtrudeSolidFace(cell, m.Vector{0, 0, depth}, mat)
 		scene.Add(esf)
 	}
+    /*
+	mat := &m.DiffuseMaterial{Color: m.NewColor(255,0,0)}
+    bunny, err := LoadObj("bunny.obj", mat)
+	if err != nil {
+		fmt.Printf("Error reading file: %s \n", err.Error())
+	}
+    scene.Add(bunny)
+    */
 
-	radmat := &m.RadiantMaterial{Color: m.NewColor(176, 237, 255)}
+	radmat := m.NewRadiantMaterial(m.ConstantTexture{Color: m.NewColor(176, 237, 255)})
 	skybox := m.NewCuboid(m.NewAABB(m.Vector{-1000, -1000, -1000}, m.Vector{1000, 1000, 1000}), radmat)
 	triangles := skybox.TesselateInsideOut()
+	//triangles := skybox.Tesselate()
 	skyboxObject := m.NewTriangleComplexObject(triangles)
 	scene.Add(skyboxObject)
 	scene.Emitters = triangles
@@ -123,8 +134,8 @@ func main() {
 
 	fmt.Println("Rendering...")
 
-	//	from, to := m.Vector{25, 150, -50}, m.Vector{25, 0, 150}
-	from, to := m.Vector{0, 1, -10}, m.Vector{0, 0, 10}
+    from, to := m.Vector{0, 1, -10}, m.Vector{0, 0, 10}
+    //from, to := m.Vector{-0.2, 0.2, 0.2}, m.Vector{-0.08813016500000001, 0.14181918999999998, 0.011103720000000001}
 	camera.LookAt(from, to, ey)
 
 	params := render.Params{
