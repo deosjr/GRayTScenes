@@ -66,7 +66,7 @@ func generateShell(flare, verm, spire float64, numWindings int) m.Object {
 	}, 100)
 	numSteps := 64 * numWindings
 	stepSize := math.Pi / 32.0
-	mat := &m.DiffuseMaterial{Color:m.NewColor(200, 100, 0)}
+	mat := m.NewDiffuseMaterial(m.NewConstantTexture(m.NewColor(200, 100, 0)))
 
 	po := gen.NewParametricObject(helix, generatingCurve, numSteps, stepSize, mat)
 	return po.Build()
